@@ -19,6 +19,10 @@ public class AuthController(
 {
   private const string AdminBootstrapEmail = "alex.arkhangelskiy@yandex.ru";
 
+  private bool IsSecureRequest() =>
+    Request.IsHttps ||
+    string.Equals(Request.Headers["X-Forwarded-Proto"].FirstOrDefault(), "https", StringComparison.OrdinalIgnoreCase);
+
   [HttpPost("send_code")]
   [AllowAnonymous]
   public async Task<ActionResult<MessageResponse>> SendCode([FromBody] SendCodeRequest request, CancellationToken ct)
@@ -145,7 +149,7 @@ public class AuthController(
     Response.Cookies.Append("access_token", token, new CookieOptions
     {
       HttpOnly = true,
-      Secure = false,
+      Secure = IsSecureRequest(),
       SameSite = SameSiteMode.Lax,
       MaxAge = TimeSpan.FromSeconds(tokenService.GetCookieMaxAgeSeconds()),
       Path = "/"

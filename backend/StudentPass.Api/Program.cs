@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using StudentPass.Api.Data;
@@ -61,14 +62,32 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+  options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+  options.KnownNetworks.Clear();
+  options.KnownProxies.Clear();
+});
+
+var devCorsOrigins = new[]
+{
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:5173"
+};
+var corsOrigins = builder.Configuration["Cors:Origins"]?
+  .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+  ?? Array.Empty<string>();
+if (corsOrigins.Length == 0)
+  corsOrigins = devCorsOrigins;
+else
+  corsOrigins = corsOrigins.Concat(devCorsOrigins).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+
 builder.Services.AddCors(options =>
 {
   options.AddDefaultPolicy(policy =>
   {
-    policy.WithOrigins(
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173")
+    policy.WithOrigins(corsOrigins)
       .AllowAnyHeader()
       .AllowAnyMethod()
       .AllowCredentials();
@@ -76,6 +95,11 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+if (app.Environment.IsProduction())
+{
+  app.UseForwardedHeaders();
+}
 
 using (var scope = app.Services.CreateScope())
 {

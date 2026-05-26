@@ -417,7 +417,20 @@ sudo ufw enable
 
 ## 8. Файлы CI/CD в репозитории
 
-Создайте в корне репозитория следующие файлы (можно скопировать из этого раздела).
+В репозитории уже есть:
+
+| Файл | Назначение |
+|------|------------|
+| `.github/workflows/ci.yml` | Сборка на `develop` / PR |
+| `.github/workflows/deploy-prod.yml` | Деплой **только** при push в `prod` |
+| `backend/docker-compose.prod.yml` | Production Docker |
+| `frontend/.env.production` | Переменные сборки фронта |
+| `scripts/deploy-vps.sh` | Ручной деплой на VPS |
+| `deploy/nginx/studentpass.conf` | Пример Nginx |
+
+Быстрый старт: [CICD-QUICKSTART.md](./CICD-QUICKSTART.md).
+
+Ниже — те же файлы для справки (если правите вручную).
 
 ### 8.1. `.github/workflows/ci.yml` — проверки без деплоя
 
