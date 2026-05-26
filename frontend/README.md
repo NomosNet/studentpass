@@ -23,6 +23,21 @@ npm install
 
 ## Запуск (dev)
 
+Бэкенд (Docker в `backend/`):
+
+```bash
+cd backend
+docker compose up -d
+```
+
+В `.env.development` (или по умолчанию в `apiClient.js`):
+
+```env
+VITE_API_BASE_URL=http://localhost:8080
+```
+
+Фронтенд:
+
 ```bash
 npm run dev
 ```

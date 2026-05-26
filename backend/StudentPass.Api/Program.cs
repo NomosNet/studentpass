@@ -21,7 +21,11 @@ var connectionString = builder.Configuration.GetConnectionString("Default")
 var serverVersion = ServerVersion.Parse("8.4.0-mysql");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-  options.UseMySql(connectionString, serverVersion));
+  options.UseMySql(connectionString, serverVersion, mySqlOptions =>
+    mySqlOptions.EnableRetryOnFailure(
+      maxRetryCount: 10,
+      maxRetryDelay: TimeSpan.FromSeconds(5),
+      errorNumbersToAdd: null)));
 
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddSingleton<IEmailSender, ConsoleEmailSender>();
