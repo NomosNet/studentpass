@@ -12,7 +12,7 @@
 | БД | MySQL 8 (Pomelo EF Core) |
 | Auth | JWT в cookie `access_token` + Bearer |
 | Пароли | BCrypt |
-| Письма (код регистрации) | Лог в консоль (SMTP можно добавить позже) |
+| Письма (код регистрации) | SMTP через `SMTP_*` в `.env`; без SMTP — код в логах API |
 
 ## Быстрый старт (Docker)
 
@@ -29,7 +29,7 @@ API: **http://localhost:8080**
 curl http://localhost:8080/api/v1/health
 ```
 
-Код подтверждения при регистрации пишется в лог контейнера `api` (как в Python-сервисе).
+Код подтверждения при регистрации отправляется по SMTP (`SMTP_*` в `.env`). Без SMTP — только в лог контейнера `api`.
 
 ## Локально без Docker
 
@@ -93,4 +93,4 @@ backend-csharp/
 - Один сервис вместо gateway + users + notify + RabbitMQ
 - MySQL вместо PostgreSQL
 - Хеш паролей BCrypt (в Python — Argon2); базы не совместимы без миграции данных
-- Очередь писем: пока только лог; SMTP можно подключить через `IEmailSender`
+- Письма: `SmtpEmailSender` (MailKit) при заданном `SMTP_HOST`, иначе `ConsoleEmailSender`

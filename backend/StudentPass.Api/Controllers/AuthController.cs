@@ -46,7 +46,7 @@ public class AuthController(
     });
     await db.SaveChangesAsync(ct);
 
-    logger.LogInformation("Код подтверждения для {Email}: {Code}", email, code);
+    logger.LogInformation("Отправка кода подтверждения на {Email}", email);
     await emailSender.SendAsync(
       email,
       "Добро пожаловать в StudentPass!",

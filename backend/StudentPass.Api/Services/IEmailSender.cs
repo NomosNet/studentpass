@@ -9,7 +9,7 @@ public class ConsoleEmailSender(ILogger<ConsoleEmailSender> logger) : IEmailSend
 {
     public Task SendAsync(string email, string subject, string message, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Email to {Email} | {Subject} | {Message}", email, subject, message);
+        logger.LogInformation("Email to {Email} | {Subject} | {Message} (SMTP не настроен — задайте SMTP_HOST в .env)", email, subject, message);
         return Task.CompletedTask;
     }
 }

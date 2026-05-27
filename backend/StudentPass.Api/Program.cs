@@ -29,7 +29,17 @@ builder.Services.AddDbContext<AppDbContext>(options =>
       errorNumbersToAdd: null)));
 
 builder.Services.AddScoped<TokenService>();
-builder.Services.AddSingleton<IEmailSender, ConsoleEmailSender>();
+
+var smtpHost = builder.Configuration["Smtp:Host"];
+if (!string.IsNullOrWhiteSpace(smtpHost))
+{
+  builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
+  builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
+}
+else
+{
+  builder.Services.AddSingleton<IEmailSender, ConsoleEmailSender>();
+}
 
 var jwtSecret = builder.Configuration["Jwt:SecretKey"]
   ?? "dev-secret-change-me-in-production-use-long-random-string";

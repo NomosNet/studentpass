@@ -285,9 +285,27 @@ MYSQL_PASSWORD=...
 JWT_SECRET_KEY=...   # openssl rand -base64 48
 JWT_ALGORITHM=HS256
 ACC_TOKEN_EXP_MIN=60
+CORS_ORIGINS=https://yourdomain.ru
+
+# Письма с кодом регистрации (без SMTP_HOST код только в логах: docker compose logs api)
+SMTP_HOST=smtp.yandex.ru
+SMTP_PORT=465
+SMTP_USER=noreply@yourdomain.ru
+SMTP_PASSWORD=...    # пароль приложения Яндекса, не основной пароль
+SMTP_FROM=StudentPass <noreply@yourdomain.ru>
+SMTP_USE_SSL=true
 ```
 
+**Яндекс.Почта:** в настройках почты включите «Пароли приложений» и создайте пароль для «Почта». Для порта **587** укажите `SMTP_PORT=587` и `SMTP_USE_SSL=false`.
+
 Файл **не коммитить** в git.
+
+После изменения `.env` пересоберите API:
+
+```bash
+cd /opt/studentpass/backend
+docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+```
 
 ### 6.6. Production Docker Compose
 
