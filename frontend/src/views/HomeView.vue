@@ -44,10 +44,11 @@ const benefits = [
       <section class="sp-hero sp-container">
         <div>
           <span class="sp-badge">Новый сезон скидок 2025-2026</span>
-          <h1>
-            StudentPass — единая платформа, где студенты IT и дизайна находят легальные скидки до
-            100% на Adobe, Figma, JetBrains, ChatGPT и десятки других сервисов.
-          </h1>
+          <h1>Все со скидкой для студентов</h1>
+          <p class="sp-muted">
+            StudentPass — единая платформа студенческих скидок. Еда, кино, транспорт, покупки, софт
+            и AI-сервисы. Экономь до 100% пока учишься.
+          </p>
           <div class="sp-actions">
             <button type="button" class="sp-btn" @click="openRegister">Регистрация</button>
             <RouterLink class="sp-btn sp-btn--ghost" :to="{ name: 'how' }">Как это работает</RouterLink>
