@@ -1,8 +1,6 @@
-# StudentPass API (C# + MySQL)
+# StudentPass API (ASP.NET Core + MySQL)
 
-Альтернативный бэкенд на **ASP.NET Core 10** и **MySQL 8**. Совместим с Vue-фронтендом по путям `/api/v1/...` (те же контракты, что у Python `service_users`).
-
-Папка **не заменяет** `backend/` (FastAPI) — это отдельный вариант для разработки и деплоя на .NET.
+Бэкенд на **ASP.NET Core 10** и **MySQL 8**. Совместим с Vue-фронтендом по путям `/api/v1/...`.
 
 ## Стек
 
@@ -17,7 +15,7 @@
 ## Быстрый старт (Docker)
 
 ```bash
-cd backend-csharp
+cd backend
 docker compose up --build
 ```
 
@@ -38,7 +36,7 @@ curl http://localhost:8080/api/v1/health
 3. Запуск:
 
 ```bash
-cd backend-csharp/StudentPass.Api
+cd backend/StudentPass.Api
 dotnet run
 ```
 
@@ -58,8 +56,6 @@ VITE_API_BASE_URL=http://localhost:8080
 
 ## Эндпоинты
 
-Реализованы те же маршруты, что в `backend/service_users`:
-
 - `POST /api/v1/auth/send_code`, `register`, `login`, `logout`, `me`, …
 - `GET/POST /api/v1/ads`, `categories`, клики
 - `GET/POST/DELETE /api/v1/favorites`
@@ -73,11 +69,12 @@ VITE_API_BASE_URL=http://localhost:8080
 
 - `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`
 - `JWT_SECRET_KEY`, `JWT_ALGORITHM`, `ACC_TOKEN_EXP_MIN`
+- `SMTP_*` — опционально, для отправки кода регистрации
 
 ## Структура
 
 ```
-backend-csharp/
+backend/
   StudentPass.slnx
   StudentPass.Api/
     Controllers/     # HTTP API
@@ -86,11 +83,9 @@ backend-csharp/
     Dtos/            # JSON-контракты
     Services/        # JWT, email, маппинг
   docker-compose.yml
+  docker-compose.prod.yml
 ```
 
-## Отличия от Python-бэкенда
+## Production
 
-- Один сервис вместо gateway + users + notify + RabbitMQ
-- MySQL вместо PostgreSQL
-- Хеш паролей BCrypt (в Python — Argon2); базы не совместимы без миграции данных
-- Письма: `SmtpEmailSender` (MailKit) при заданном `SMTP_HOST`, иначе `ConsoleEmailSender`
+См. `docker-compose.prod.yml` и `docs/DEPLOYMENT-VPS.md`.
