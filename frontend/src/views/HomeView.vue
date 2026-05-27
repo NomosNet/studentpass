@@ -56,7 +56,14 @@ const benefits = [
           <p class="sp-students">450 000+ студентов могут воспользоваться</p>
         </div>
         <div class="sp-hero-visual">
-          <span>Студенты за ноутбуками</span>
+          <img
+            src="/images/home/hero-students.jpg"
+            alt="Студенты за ноутбуками"
+            width="640"
+            height="480"
+            loading="eager"
+            decoding="async"
+          />
         </div>
       </section>
 
@@ -110,7 +117,16 @@ const benefits = [
     </section>
 
     <section class="sp-section sp-container sp-why">
-      <div class="sp-why-image">Студенты сотрудничают</div>
+      <div class="sp-why-image">
+        <img
+          src="/images/home/why-students.png"
+          alt="Студенты сотрудничают"
+          width="640"
+          height="480"
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
       <div>
         <p class="sp-section-tag">Почему мы</p>
         <h2>Решение всех проблем в одном месте</h2>

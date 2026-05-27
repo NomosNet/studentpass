@@ -256,13 +256,17 @@ p {
   border: 1px solid #252b4b;
   border-radius: 16px;
   min-height: 320px;
-  background:
-    radial-gradient(circle at 60% 70%, rgba(113, 73, 255, 0.25), transparent 60%),
-    linear-gradient(130deg, #131633 0%, #171245 45%, #0d1335 100%);
-  display: flex;
-  align-items: flex-start;
-  padding: 12px;
-  color: #ced4ee;
+  overflow: hidden;
+  background: #0d1335;
+}
+
+.sp-hero-visual img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+  object-fit: cover;
+  object-position: center;
 }
 
 .sp-stats {
@@ -417,11 +421,17 @@ p {
   border: 1px solid var(--line);
   border-radius: 16px;
   min-height: 360px;
-  background:
-    linear-gradient(130deg, #111531 0%, #21154e 45%, #362161 100%),
-    #0b1029;
-  padding: 14px;
-  color: #d4dcff;
+  overflow: hidden;
+  background: #0b1029;
+}
+
+.sp-why-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+  object-fit: cover;
+  object-position: center;
 }
 
 .sp-benefits {
