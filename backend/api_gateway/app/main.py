@@ -127,6 +127,7 @@ async def proxy_request(request: Request, path: str):
         headers["X-User-Roles"] = str(",".join(user_data.get("roles", [])))
     
     body = await request.body()
+    hop_by_hop = {'content-length', 'content-encoding', 'transfer-encoding', 'connection'}
     
     try:
         async with httpx.AsyncClient() as client:
@@ -138,10 +139,21 @@ async def proxy_request(request: Request, path: str):
                 params=request.query_params,
                 timeout=30.0
             )
+            if response.content:
+                try:
+                    content = response.json()
+                except ValueError:
+                    content = {"detail": response.text[:500] or "Upstream error"}
+            else:
+                content = {}
+            safe_headers = {
+                key: value for key, value in response.headers.items()
+                if key.lower() not in hop_by_hop
+            }
             return JSONResponse(
-                content=response.json() if response.content else {},
+                content=content,
                 status_code=response.status_code,
-                headers=dict(response.headers)
+                headers=safe_headers
             )
     except httpx.ConnectError:
         raise HTTPException(status_code=503, detail=f"Service unavailable")

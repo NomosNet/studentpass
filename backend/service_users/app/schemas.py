@@ -1,7 +1,13 @@
 from pydantic import BaseModel, EmailStr, Field, validator
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from enum import Enum
+
+
+def _to_naive_utc(value: datetime) -> datetime:
+    if value.tzinfo is not None:
+        return value.astimezone(timezone.utc).replace(tzinfo=None)
+    return value
 
 
 # ==================== Enums ====================
@@ -105,6 +111,10 @@ class AdCreate(BaseModel):
     category_ids: List[int] = Field(..., min_length=1)
     emodzi_id: Optional[int] = None
     prioritet: int = Field(default=0, ge=0)
+
+    @validator('end_date')
+    def normalize_end_date(cls, value: datetime) -> datetime:
+        return _to_naive_utc(value)
     
 
 class AdUpdate(BaseModel):
@@ -117,6 +127,12 @@ class AdUpdate(BaseModel):
     category_ids: Optional[List[int]] = None
     emodzi_id: Optional[int] = None
     prioritet: Optional[int] = Field(None, ge=0)
+
+    @validator('end_date')
+    def normalize_end_date(cls, value: Optional[datetime]) -> Optional[datetime]:
+        if value is None:
+            return value
+        return _to_naive_utc(value)
 
 
 class AdResponse(BaseModel):

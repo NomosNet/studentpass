@@ -8,7 +8,7 @@ import sys
 
 from app.models import *
 
-from .database import get_db, create_tables
+from .database import get_db, create_tables, AsyncSessionLocal
 from . import crud
 from .schemas import *
 from .security import *
@@ -49,6 +49,10 @@ async def lifespan(app: FastAPI):
         from faststream.rabbit import RabbitQueue
         await broker.declare_queue(RabbitQueue("email_queue"))
         print("✅ Очередь email_queue объявлена", file=sys.stderr)
+
+        async with AsyncSessionLocal() as db:
+            await crud.ensure_default_categories(db)
+            print("✅ Категории по умолчанию проверены", file=sys.stderr)
 
     except Exception as e:
         print(f"❌ Ошибка: {e}", file=sys.stderr)
@@ -119,11 +123,14 @@ async def get_current_partner(
 ) -> Partner:
     """Партнёр или администратор (для управления скидками)."""
     if current_user.role == UserRole.ADMIN:
-        return await crud.get_or_create_admin_partner(
-            db,
-            current_user.email,
-            current_user.full_name or "StudentPass",
-        )
+        try:
+            return await crud.get_or_create_admin_partner(
+                db,
+                current_user.email,
+                current_user.full_name or "StudentPass",
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=403, detail=str(exc))
 
     if current_user.role != UserRole.PARTNER:
         raise HTTPException(status_code=403, detail="Доступ только для партнёров и администраторов")
@@ -295,11 +302,10 @@ async def login(
     db: AsyncSession = Depends(get_db)
 ):
     user = await crud.get_user_by_email(db, data.email)
-    if user.is_active == False:
-        raise HTTPException(status_code=401, detail="Этот аккаунт является удаленным")
-    
     if not user or not verify_password(data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Неверный email или пароль")
+    if not user.is_active:
+        raise HTTPException(status_code=401, detail="Этот аккаунт является удаленным")
     
     token_data = {
         "sub": user.email,
@@ -658,31 +664,38 @@ async def create_ad(
     current_partner: Partner = Depends(get_current_partner),
     db: AsyncSession = Depends(get_db)
 ):
-    # Проверяем лимит объявлений
+    from sqlalchemy.exc import IntegrityError
+
     current_count = await crud.get_partner_ads_count(db, current_partner.user_email)
     if current_count >= current_partner.ads_limit:
         raise HTTPException(status_code=400, detail=f"Превышен лимит объявлений (максимум {current_partner.ads_limit})")
-    
-    # Проверяем, что категории существуют
+
     for cat_id in data.category_ids:
         category = await crud.get_category_by_id(db, cat_id)
         if not category:
             raise HTTPException(status_code=400, detail=f"Категория с id {cat_id} не найдена")
-    
-    await crud.create_ad(
-        db=db,
-        partner_email=current_partner.user_email,
-        title=data.title,
-        description=data.description,
-        discount_percent=data.discount_percent,
-        url=data.url,
-        address=data.address,
-        end_date=data.end_date,
-        category_ids=data.category_ids,
-        emodzi_id=data.emodzi_id,
-        prioritet=data.prioritet
-    )
-    
+
+    try:
+        await crud.create_ad(
+            db=db,
+            partner_email=current_partner.user_email,
+            title=data.title,
+            description=data.description,
+            discount_percent=data.discount_percent,
+            url=data.url,
+            address=data.address,
+            end_date=data.end_date,
+            category_ids=data.category_ids,
+            emodzi_id=data.emodzi_id,
+            prioritet=data.prioritet
+        )
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Не удалось создать объявление. Проверьте категорию и профиль компании.",
+        )
+
     return MessageResponse(message="Объявление создано")
 
 

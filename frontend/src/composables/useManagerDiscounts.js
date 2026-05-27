@@ -41,11 +41,16 @@ function mapPayloadToApi(payload, categoryRef) {
   if (!categoryIdByName) {
     throw new Error('Выберите категорию или создайте новую')
   }
+  const percentRaw = Number(payload.percentNumber ?? 0)
+  const discountPercent = Number.isFinite(percentRaw)
+    ? Math.max(1, Math.min(100, percentRaw))
+    : 1
+  const url = String(payload.linkUrl || '').trim() || 'https://student-pass.ru'
   return {
     title: String(payload.title || '').trim(),
     description: String(payload.description || '').trim(),
-    discount_percent: Number(payload.percentNumber ?? 0),
-    url: String(payload.linkUrl || '').trim(),
+    discount_percent: discountPercent,
+    url,
     address: String(payload.address || 'Онлайн').trim(),
     end_date: payload.endDate || new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
     category_ids: Array.isArray(payload.categoryIds) && payload.categoryIds.length

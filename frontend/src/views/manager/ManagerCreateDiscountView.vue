@@ -75,13 +75,22 @@ async function submitForm() {
       : 'Категории ещё не созданы. Попросите администратора добавить их.'
     return
   }
+  if (!String(title.value || '').trim()) {
+    formError.value = 'Укажите название скидки'
+    return
+  }
+  const pct = Number(percent.value)
+  if (!Number.isFinite(pct) || pct < 1 || pct > 100) {
+    formError.value = 'Размер скидки должен быть от 1 до 100%'
+    return
+  }
 
   const payload = {
     title: title.value,
     description: description.value,
-    percentNumber: percent.value,
+    percentNumber: pct,
     category: category.value,
-    linkUrl: linkUrl.value,
+    linkUrl: String(linkUrl.value || '').trim() || 'https://student-pass.ru',
     emoji: emoji.value,
   }
 
@@ -197,7 +206,7 @@ async function submitForm() {
             placeholder="https://yourwebsite.com/student-discount"
           />
           <p class="mgr-form-hint">
-            Студенты будут переходить по этой ссылке при нажатии «Получить»
+            Студенты будут переходить по этой ссылке при нажатии «Получить». Если не указать — будет использован адрес сайта.
           </p>
         </div>
 

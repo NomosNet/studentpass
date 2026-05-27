@@ -285,8 +285,20 @@ async def get_partner_by_user_email(db: AsyncSession, user_email: str) -> Option
     return result.scalar_one_or_none()
 
 
+async def ensure_default_categories(db: AsyncSession) -> None:
+    _, total = await get_categories(db, limit=1)
+    if total:
+        return
+    for name in ("Софт", "Еда", "Транспорт", "Развлечения", "Образование", "Прочее"):
+        await create_category(db, name, is_custom=False)
+
+
 async def get_or_create_admin_partner(db: AsyncSession, admin_email: str, company_name: str) -> Partner:
     """Партнёрский профиль для админа (роль user не меняется)."""
+    user = await get_user_by_email(db, admin_email)
+    if not user:
+        raise ValueError(f"User not found for partner profile: {admin_email}")
+
     partner = await get_partner_by_user_email(db, admin_email)
     if partner:
         if not partner.is_approved:
