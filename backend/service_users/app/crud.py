@@ -285,6 +285,29 @@ async def get_partner_by_user_email(db: AsyncSession, user_email: str) -> Option
     return result.scalar_one_or_none()
 
 
+async def get_or_create_admin_partner(db: AsyncSession, admin_email: str, company_name: str) -> Partner:
+    """Партнёрский профиль для админа (роль user не меняется)."""
+    partner = await get_partner_by_user_email(db, admin_email)
+    if partner:
+        if not partner.is_approved:
+            partner.is_approved = True
+            await db.commit()
+            await db.refresh(partner)
+        return partner
+
+    partner = Partner(
+        user_email=admin_email,
+        company_name=company_name or "StudentPass",
+        description="Предложения платформы",
+        is_approved=True,
+        ads_limit=100,
+    )
+    db.add(partner)
+    await db.commit()
+    await db.refresh(partner)
+    return partner
+
+
 async def get_partner_by_email(db: AsyncSession, partner_email: str) -> Optional[Partner]:
     result = await db.execute(
         select(Partner).where(Partner.user_email == partner_email, Partner.is_approved == True)
@@ -412,6 +435,15 @@ async def get_ad_by_id(db: AsyncSession, ad_id: int) -> Optional[Ad]:
         .options(selectinload(Ad.categories), 
                  selectinload(Ad.partner).selectinload(Partner.user))
         .where(Ad.id == ad_id, Ad.is_active == True, Ad.end_date > datetime.utcnow())
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_partner_ad(db: AsyncSession, ad_id: int, partner_email: str) -> Optional[Ad]:
+    result = await db.execute(
+        select(Ad)
+        .options(selectinload(Ad.categories))
+        .where(Ad.id == ad_id, Ad.partner_email == partner_email)
     )
     return result.scalar_one_or_none()
 

@@ -54,6 +54,7 @@ export function useSession() {
   const isLoggedIn = computed(() => !!user.value)
   const isAdmin = computed(() => user.value?.role === 'admin')
   const isManager = computed(() => isPartnerRole(user.value?.role))
+  const canManageDiscounts = computed(() => isAdmin.value || isManager.value)
   const isStudent = computed(
     () => !!user.value && user.value.role !== 'admin' && !isPartnerRole(user.value.role),
   )
@@ -114,6 +115,7 @@ export function useSession() {
     isLoggedIn,
     isAdmin,
     isManager,
+    canManageDiscounts,
     isStudent,
     login,
     register,

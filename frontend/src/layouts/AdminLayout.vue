@@ -24,6 +24,8 @@ async function handleLogout() {
         <RouterLink :to="{ name: 'admin-dashboard' }" active-class="is-active">Панель управления</RouterLink>
         <RouterLink :to="{ name: 'admin-applications' }" active-class="is-active">Заявки компаний</RouterLink>
         <RouterLink :to="{ name: 'admin-managers' }" active-class="is-active">Менеджеры</RouterLink>
+        <RouterLink :to="{ name: 'manager-discounts' }" active-class="is-active">Мои скидки</RouterLink>
+        <RouterLink :to="{ name: 'manager-discount-create' }" active-class="is-active">Создать скидку</RouterLink>
         <RouterLink :to="{ name: 'admin-statistics' }" active-class="is-active">Статистика</RouterLink>
       </nav>
       <div class="admin-profile">

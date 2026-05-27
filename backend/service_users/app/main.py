@@ -117,15 +117,21 @@ async def get_current_partner(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> Partner:
-    """Проверяет, что текущий пользователь — партнёр, и возвращает объект Partner"""
-    
+    """Партнёр или администратор (для управления скидками)."""
+    if current_user.role == UserRole.ADMIN:
+        return await crud.get_or_create_admin_partner(
+            db,
+            current_user.email,
+            current_user.full_name or "StudentPass",
+        )
+
     if current_user.role != UserRole.PARTNER:
-        raise HTTPException(status_code=403, detail="Доступ только для партнёров")
-    
+        raise HTTPException(status_code=403, detail="Доступ только для партнёров и администраторов")
+
     partner = await crud.get_partner_by_user_email(db, current_user.email)
     if not partner or not partner.is_approved:
         raise HTTPException(status_code=403, detail="Партнёр не одобрен администратором")
-    
+
     return partner
 
 
@@ -687,9 +693,8 @@ async def update_ad(
     current_partner: Partner = Depends(get_current_partner),
     db: AsyncSession = Depends(get_db)
 ):
-    # Проверяем, что объявление принадлежит партнёру
-    ad = await crud.get_ad_by_id(db, ad_id)
-    if not ad or ad.partner_email != current_partner.user_email:
+    ad = await crud.get_partner_ad(db, ad_id, current_partner.user_email)
+    if not ad:
         raise HTTPException(status_code=404, detail="Объявление не найдено")
     
     # Обновляем только переданные поля
@@ -708,9 +713,8 @@ async def delete_ad(
     current_partner: Partner = Depends(get_current_partner),
     db: AsyncSession = Depends(get_db)
 ):
-    # Проверяем, что объявление принадлежит партнёру
-    ad = await crud.get_ad_by_id(db, ad_id)
-    if not ad or ad.partner_email != current_partner.user_email:
+    ad = await crud.get_partner_ad(db, ad_id, current_partner.user_email)
+    if not ad:
         raise HTTPException(status_code=404, detail="Объявление не найдено")
     
     await crud.delete_ad(db, ad_id)

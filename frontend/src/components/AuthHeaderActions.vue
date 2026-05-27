@@ -5,7 +5,7 @@ import { useSession } from '../composables/useSession'
 
 const router = useRouter()
 const { openRegister, openLogin } = useAuthModal()
-const { user, isLoggedIn, isAdmin, isManager, isStudent, logout } = useSession()
+const { user, isLoggedIn, isAdmin, isManager, canManageDiscounts, isStudent, logout } = useSession()
 
 async function handleLogout() {
   const path = router.currentRoute.value.path
@@ -33,11 +33,11 @@ async function handleLogout() {
       Админ-панель
     </RouterLink>
     <RouterLink
-      v-if="isManager"
+      v-if="canManageDiscounts"
       class="auth-header-btn auth-header-btn--ghost"
       :to="{ name: 'manager-discounts' }"
     >
-      Кабинет компании
+      {{ isAdmin ? 'Скидки' : 'Кабинет компании' }}
     </RouterLink>
     <RouterLink
       v-if="isStudent"

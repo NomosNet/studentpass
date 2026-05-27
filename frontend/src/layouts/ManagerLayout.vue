@@ -4,7 +4,7 @@ import { computed } from 'vue'
 import { useSession } from '../composables/useSession'
 
 const router = useRouter()
-const { user, logout } = useSession()
+const { user, logout, isAdmin } = useSession()
 
 const profileLabel = computed(() => user.value?.displayName || 'Компания')
 
@@ -19,6 +19,7 @@ async function handleLogout() {
     <header class="admin-top">
       <RouterLink :to="{ name: 'home' }" class="admin-brand">StudentPass</RouterLink>
       <nav class="admin-nav mgr-nav">
+        <RouterLink v-if="isAdmin" :to="{ name: 'admin-dashboard' }" active-class="is-active">Админ-панель</RouterLink>
         <RouterLink :to="{ name: 'manager-discounts' }" active-class="is-active">Мои скидки</RouterLink>
         <RouterLink :to="{ name: 'manager-statistics' }" active-class="is-active">Статистика</RouterLink>
         <RouterLink :to="{ name: 'manager-discount-create' }" active-class="is-active">Создать скидку</RouterLink>

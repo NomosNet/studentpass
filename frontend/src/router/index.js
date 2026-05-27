@@ -134,7 +134,7 @@ router.beforeEach((to) => {
     }
     if (to.matched.some((r) => r.meta.requiresManager)) {
       const role = user.value?.role
-      if (!user.value || (role !== 'manager' && role !== 'partner')) {
+      if (!user.value || (role !== 'manager' && role !== 'partner' && role !== 'admin')) {
         return { name: 'home' }
       }
     }
