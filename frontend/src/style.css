@@ -1295,17 +1295,27 @@ p {
   align-items: center;
   justify-content: center;
   padding: 20px;
+  padding-top: max(20px, env(safe-area-inset-top));
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   background: rgba(3, 4, 12, 0.72);
   backdrop-filter: blur(4px);
+  touch-action: manipulation;
 }
 
 .auth-modal {
   position: relative;
   width: 100%;
   max-width: 420px;
-  max-height: calc(100vh - 40px);
+  max-height: min(calc(100dvh - 40px), calc(100vh - 40px));
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 28px 26px 24px;
+  margin: auto;
+  flex-shrink: 0;
   background: #0d0d12;
   border: 1px solid #2a2a38;
   border-radius: 18px;
@@ -1409,10 +1419,11 @@ p {
   border: none;
   background: transparent;
   padding: 12px 14px 12px 0;
-  font-size: 15px;
+  font-size: 16px;
   color: #f9fafb;
   outline: none;
   font-family: inherit;
+  touch-action: manipulation;
 }
 
 .auth-input::placeholder {
@@ -1530,6 +1541,23 @@ button.sp-btn {
   .auth-header-btn {
     font-size: 13px;
     padding: 8px 12px;
+  }
+
+  .auth-overlay {
+    align-items: flex-start;
+    padding: 12px;
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .auth-modal {
+    max-height: none;
+    margin-top: 0;
+    margin-bottom: auto;
+  }
+
+  .auth-input-row {
+    min-height: 48px;
   }
 }
 
