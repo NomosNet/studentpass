@@ -14,14 +14,19 @@ cd backend
 cp -f .env.production .env
 
 echo ">>> Nginx"
+NGINX_CONF="$ROOT/deploy/nginx/studentpass.conf"
+if [ ! -f /etc/letsencrypt/live/student-pass.ru/fullchain.pem ]; then
+  NGINX_CONF="$ROOT/deploy/nginx/studentpass.http-only.conf"
+  echo "SSL certs not found, using HTTP-only nginx config"
+fi
 if [ "$(id -u)" -eq 0 ]; then
-  cp "$ROOT/deploy/nginx/studentpass.conf" /etc/nginx/sites-available/studentpass
+  cp "$NGINX_CONF" /etc/nginx/sites-available/studentpass
   rm -f /etc/nginx/sites-enabled/default
   ln -sf /etc/nginx/sites-available/studentpass /etc/nginx/sites-enabled/studentpass
   nginx -t
   systemctl reload nginx
 else
-  sudo cp "$ROOT/deploy/nginx/studentpass.conf" /etc/nginx/sites-available/studentpass
+  sudo cp "$NGINX_CONF" /etc/nginx/sites-available/studentpass
   sudo rm -f /etc/nginx/sites-enabled/default
   sudo ln -sf /etc/nginx/sites-available/studentpass /etc/nginx/sites-enabled/studentpass
   sudo nginx -t

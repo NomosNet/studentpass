@@ -38,7 +38,12 @@ jobs:
             cp -f .env.production .env
 
             echo ">>> Nginx"
-            cp "$APP_PATH/deploy/nginx/studentpass.conf" /etc/nginx/sites-available/studentpass
+            NGINX_CONF="$APP_PATH/deploy/nginx/studentpass.conf"
+            if [ ! -f /etc/letsencrypt/live/student-pass.ru/fullchain.pem ]; then
+              NGINX_CONF="$APP_PATH/deploy/nginx/studentpass.http-only.conf"
+              echo "SSL certs not found, using HTTP-only nginx config"
+            fi
+            cp "$NGINX_CONF" /etc/nginx/sites-available/studentpass
             rm -f /etc/nginx/sites-enabled/default
             ln -sf /etc/nginx/sites-available/studentpass /etc/nginx/sites-enabled/studentpass
             nginx -t
