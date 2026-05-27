@@ -16,6 +16,7 @@ import { RouterLink } from 'vue-router'
         <RouterLink :to="{ name: 'home' }">Главная</RouterLink>
         <RouterLink :to="{ name: 'catalog' }">Каталог скидок</RouterLink>
         <RouterLink :to="{ name: 'how' }">Как это работает</RouterLink>
+        <RouterLink :to="{ name: 'account' }">Личный кабинет</RouterLink>
       </div>
       <div>
         <h4>Категории</h4>

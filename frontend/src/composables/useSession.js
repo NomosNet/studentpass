@@ -54,6 +54,9 @@ export function useSession() {
   const isLoggedIn = computed(() => !!user.value)
   const isAdmin = computed(() => user.value?.role === 'admin')
   const isManager = computed(() => isPartnerRole(user.value?.role))
+  const isStudent = computed(
+    () => !!user.value && user.value.role !== 'admin' && !isPartnerRole(user.value.role),
+  )
 
   async function login({ email, password = '' }) {
     await loginUser({ email: mapLoginValue(email), password })
@@ -111,6 +114,7 @@ export function useSession() {
     isLoggedIn,
     isAdmin,
     isManager,
+    isStudent,
     login,
     register,
     requestRegistrationCode,

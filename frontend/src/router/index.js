@@ -15,6 +15,7 @@ import ManagerLayout from '../layouts/ManagerLayout.vue'
 import ManagerDiscountsView from '../views/manager/ManagerDiscountsView.vue'
 import ManagerCreateDiscountView from '../views/manager/ManagerCreateDiscountView.vue'
 import ManagerStatisticsView from '../views/manager/ManagerStatisticsView.vue'
+import AccountView from '../views/AccountView.vue'
 import { useSession } from '../composables/useSession'
 
 const routes = [
@@ -41,6 +42,12 @@ const routes = [
         path: 'product/:id',
         name: 'product',
         component: ProductView,
+      },
+      {
+        path: 'account',
+        name: 'account',
+        component: AccountView,
+        meta: { requiresAuth: true },
       },
     ],
   },
@@ -130,6 +137,14 @@ router.beforeEach((to) => {
       if (!user.value || (role !== 'manager' && role !== 'partner')) {
         return { name: 'home' }
       }
+    }
+    if (to.matched.some((r) => r.meta.requiresAuth)) {
+      if (!user.value) {
+        return { name: 'home' }
+      }
+      const role = user.value.role
+      if (role === 'admin') return { name: 'admin-dashboard' }
+      if (role === 'manager' || role === 'partner') return { name: 'manager-discounts' }
     }
     return true
   })

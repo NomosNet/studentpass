@@ -5,11 +5,11 @@ import { useSession } from '../composables/useSession'
 
 const router = useRouter()
 const { openRegister, openLogin } = useAuthModal()
-const { user, isLoggedIn, isAdmin, isManager, logout } = useSession()
+const { user, isLoggedIn, isAdmin, isManager, isStudent, logout } = useSession()
 
 async function handleLogout() {
   const path = router.currentRoute.value.path
-  const leaveCabinet = path.startsWith('/admin') || path.startsWith('/manager')
+  const leaveCabinet = path.startsWith('/admin') || path.startsWith('/manager') || path.startsWith('/account')
   await logout()
   if (leaveCabinet) router.push({ name: 'home' })
 }
@@ -39,9 +39,24 @@ async function handleLogout() {
     >
       Кабинет компании
     </RouterLink>
-    <span class="auth-header-email" :title="user.email">{{ user.displayName }}</span>
-    <button type="button" class="auth-header-btn auth-header-btn--ghost" @click="handleLogout">
-      Выйти
-    </button>
+    <RouterLink
+      v-if="isStudent"
+      class="auth-header-account"
+      :to="{ name: 'account' }"
+      :title="user.email"
+    >
+      <span class="auth-header-account__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+          <path d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 20a8 8 0 1116 0H4z" stroke="currentColor" stroke-width="2" />
+        </svg>
+      </span>
+      <span>{{ user.displayName }}</span>
+    </RouterLink>
+    <template v-if="!isStudent">
+      <span class="auth-header-email" :title="user.email">{{ user.displayName }}</span>
+      <button type="button" class="auth-header-btn auth-header-btn--ghost" @click="handleLogout">
+        Выйти
+      </button>
+    </template>
   </div>
 </template>

@@ -59,6 +59,8 @@ async function submitRegister() {
       password: regPass.value,
       code: regCode.value,
     })
+    const uni = String(regUni.value || '').trim()
+    if (uni) localStorage.setItem('studentpass_university', uni)
     close()
     openLogin()
   } catch (error) {
@@ -74,6 +76,7 @@ async function submitLogin() {
     const role = currentUser?.role
     if (role === 'admin') router.push({ name: 'admin-dashboard' })
     else if (role === 'partner' || role === 'manager') router.push({ name: 'manager-discounts' })
+    else router.push({ name: 'account' })
   } catch (error) {
     authError.value = error instanceof Error ? error.message : 'Не удалось выполнить вход'
   }
