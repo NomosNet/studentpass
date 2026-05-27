@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthModal } from '../composables/useAuthModal'
 import { useSession } from '../composables/useSession'
@@ -8,6 +8,8 @@ const router = useRouter()
 const { openMode, close, openLogin, openRegister } = useAuthModal()
 const { login, register, requestRegistrationCode } = useSession()
 const authError = ref('')
+const modalRef = ref(null)
+const backdropPressed = ref(false)
 
 const regName = ref('')
 const regEmail = ref('')
@@ -24,6 +26,41 @@ const onKeydown = (e) => {
   if (e.key === 'Escape') close()
 }
 
+function isBackdropTarget(event) {
+  return event.target === event.currentTarget
+}
+
+function onBackdropPointerDown(event) {
+  if (isBackdropTarget(event)) backdropPressed.value = true
+}
+
+function onBackdropPointerUp(event) {
+  if (backdropPressed.value && isBackdropTarget(event)) close()
+  backdropPressed.value = false
+}
+
+function onBackdropPointerCancel() {
+  backdropPressed.value = false
+}
+
+function scrollFocusedInputIntoView() {
+  const active = document.activeElement
+  if (!(active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement)) return
+  if (!modalRef.value?.contains(active)) return
+  requestAnimationFrame(() => {
+    active.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' })
+  })
+}
+
+function onInputFocus(event) {
+  scrollFocusedInputIntoView()
+  event.stopPropagation()
+}
+
+function onViewportResize() {
+  if (openMode.value) scrollFocusedInputIntoView()
+}
+
 watch(openMode, (mode) => {
   document.body.style.overflow = mode ? 'hidden' : ''
   if (mode === 'register') {
@@ -31,6 +68,7 @@ watch(openMode, (mode) => {
     codeSent.value = false
     authError.value = ''
   }
+  if (mode) nextTick(scrollFocusedInputIntoView)
 })
 
 async function onSendCode() {
@@ -82,9 +120,15 @@ async function submitLogin() {
   }
 }
 
-onMounted(() => window.addEventListener('keydown', onKeydown))
+onMounted(() => {
+  window.addEventListener('keydown', onKeydown)
+  window.visualViewport?.addEventListener('resize', onViewportResize)
+  window.visualViewport?.addEventListener('scroll', onViewportResize)
+})
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown)
+  window.visualViewport?.removeEventListener('resize', onViewportResize)
+  window.visualViewport?.removeEventListener('scroll', onViewportResize)
   document.body.style.overflow = ''
 })
 </script>
@@ -95,14 +139,18 @@ onUnmounted(() => {
       v-if="openMode"
       class="auth-overlay"
       role="presentation"
-      @click.self="close"
+      @pointerdown="onBackdropPointerDown"
+      @pointerup="onBackdropPointerUp"
+      @pointercancel="onBackdropPointerCancel"
     >
       <div
+        ref="modalRef"
         class="auth-modal"
         :class="{ 'auth-modal--login': openMode === 'login' }"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="openMode === 'login' ? 'auth-login-title' : 'auth-register-title'"
+        @pointerdown.stop
       >
         <button type="button" class="auth-close" aria-label="Закрыть" @click="close">
           ×
@@ -118,7 +166,7 @@ onUnmounted(() => {
                 <span class="auth-input-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 20a8 8 0 1116 0H4z" stroke="currentColor" stroke-width="2"/></svg>
                 </span>
-                <input id="reg-name" v-model="regName" type="text" class="auth-input" placeholder="Иван Иванов" autocomplete="name" />
+                <input id="reg-name" v-model="regName" type="text" class="auth-input" placeholder="Иван Иванов" autocomplete="name" @focus="onInputFocus" />
               </div>
             </div>
 
@@ -128,7 +176,7 @@ onUnmounted(() => {
                 <span class="auth-input-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4V6zm0 0l8 6 8-6" stroke="currentColor" stroke-width="2"/></svg>
                 </span>
-                <input id="reg-email" v-model="regEmail" type="email" class="auth-input" placeholder="student@university.edu" autocomplete="email" />
+                <input id="reg-email" v-model="regEmail" type="email" class="auth-input" placeholder="student@university.edu" autocomplete="email" @focus="onInputFocus" />
               </div>
               <p class="auth-hint">Используйте почту, выданную вашим учебным заведением</p>
               <button
@@ -157,6 +205,7 @@ onUnmounted(() => {
                   autocomplete="one-time-code"
                   class="auth-input"
                   placeholder="000000"
+                  @focus="onInputFocus"
                 />
               </div>
             </div>
@@ -167,7 +216,7 @@ onUnmounted(() => {
                 <span class="auth-input-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none"><path d="M12 3L3 8v2h18V8L12 3zm-7 6l7 4 7-4" stroke="currentColor" stroke-width="2"/><path d="M5 14v6M19 14v6" stroke="currentColor" stroke-width="2"/></svg>
                 </span>
-                <input id="reg-uni" v-model="regUni" type="text" class="auth-input" placeholder="МИРЭА, МГУ, СПбГУ, НИУ ВШЭ..." autocomplete="organization" />
+                <input id="reg-uni" v-model="regUni" type="text" class="auth-input" placeholder="МИРЭА, МГУ, СПбГУ, НИУ ВШЭ..." autocomplete="organization" @focus="onInputFocus" />
               </div>
             </div>
 
@@ -177,7 +226,7 @@ onUnmounted(() => {
                 <span class="auth-input-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" stroke-width="2"/></svg>
                 </span>
-                <input id="reg-pass" v-model="regPass" type="password" class="auth-input" placeholder="••••••••" autocomplete="new-password" />
+                <input id="reg-pass" v-model="regPass" type="password" class="auth-input" placeholder="••••••••" autocomplete="new-password" @focus="onInputFocus" />
               </div>
             </div>
 
@@ -201,7 +250,7 @@ onUnmounted(() => {
                 <span class="auth-input-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4V6zm0 0l8 6 8-6" stroke="currentColor" stroke-width="2"/></svg>
                 </span>
-                <input id="login-email" v-model="loginEmail" type="text" class="auth-input" placeholder="admin, manager или email" autocomplete="username" />
+                <input id="login-email" v-model="loginEmail" type="text" class="auth-input" placeholder="admin, manager или email" autocomplete="username" @focus="onInputFocus" />
               </div>
               <p class="auth-hint">
                 Демо-вход: <strong>admin / admin</strong> — админ-панель, <strong>manager / manager</strong> — кабинет компании.
@@ -214,7 +263,7 @@ onUnmounted(() => {
                 <span class="auth-input-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" stroke-width="2"/></svg>
                 </span>
-                <input id="login-pass" v-model="loginPass" type="password" class="auth-input" placeholder="••••••••" autocomplete="current-password" />
+                <input id="login-pass" v-model="loginPass" type="password" class="auth-input" placeholder="••••••••" autocomplete="current-password" @focus="onInputFocus" />
               </div>
             </div>
 
