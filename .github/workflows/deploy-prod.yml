@@ -33,8 +33,18 @@ jobs:
             git checkout prod
             git reset --hard origin/prod
 
-            echo ">>> Backend"
+            echo ">>> Backend secrets"
             cd backend
+            cp -f .env.production .env
+
+            echo ">>> Nginx"
+            cp "$APP_PATH/deploy/nginx/studentpass.conf" /etc/nginx/sites-available/studentpass
+            rm -f /etc/nginx/sites-enabled/default
+            ln -sf /etc/nginx/sites-available/studentpass /etc/nginx/sites-enabled/studentpass
+            nginx -t
+            systemctl reload nginx
+
+            echo ">>> Backend"
             docker compose -f docker-compose.prod.yml --env-file .env up -d --build
 
             echo ">>> Frontend"
