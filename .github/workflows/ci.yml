@@ -28,17 +28,8 @@ jobs:
           VITE_DEV_AUTH_ROLE: off
           VITE_API_BASE_URL: ""
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "10.0.x"
-
-      - name: Build API
-        working-directory: backend/StudentPass.Api
-        run: |
-          dotnet restore
-          dotnet build -c Release --no-restore
-
-      - name: Verify Docker build (API image)
+      - name: Verify Docker build (backend stack)
         working-directory: backend
-        run: docker build -f StudentPass.Api/Dockerfile -t studentpass-api:ci .
+        run: |
+          cp .env.example .env
+          docker compose -f docker-compose.prod.yml build

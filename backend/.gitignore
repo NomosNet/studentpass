@@ -1,4 +1,19 @@
-**/bin/
-**/obj/
 .env
-*.user
+
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.pytest_cache/
+
+# Database
+*.db
+*.sqlite3
+
+.env
+*.env

@@ -1,46 +1,124 @@
 services:
-  mysql:
-    image: mysql:8.4
+  postgres:
+    image: postgres:17
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
-      MYSQL_DATABASE: studentpass
-      MYSQL_USER: studentpass
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-devpassword}
+      POSTGRES_DB: control_sys_2
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
     healthcheck:
-      # На первом запуске MySQL поднимает временный сервер (без порта 3306).
-      # Проверяем реальный порт и доступ к БД studentpass, иначе API стартует слишком рано.
-      test: ["CMD-SHELL", "mysql -h127.0.0.1 -P3306 -ustudentpass -p$$MYSQL_PASSWORD -e 'SELECT 1' studentpass || exit 1"]
+      test: ["CMD-SHELL", "pg_isready -U admin -d control_sys_2"]
       interval: 5s
-      timeout: 5s
-      retries: 15
-      start_period: 40s
+      timeout: 3s
+      retries: 5
 
-  api:
-    build:
-      context: .
-      dockerfile: StudentPass.Api/Dockerfile
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: service_rabbitmq
     ports:
-      - "8080:8080"
+      - "5672:5672"
+      - "15672:15672"
     environment:
-      ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__Default: Server=mysql;Port=3306;Database=studentpass;User=studentpass;Password=${MYSQL_PASSWORD:-devpassword};
-      Jwt__SecretKey: ${JWT_SECRET_KEY:-dev-secret-change-me-in-production-use-long-random-string}
-      Jwt__Algorithm: ${JWT_ALGORITHM:-HS256}
-      Jwt__AccessTokenMinutes: ${ACC_TOKEN_EXP_MIN:-60}
-      Smtp__Host: ${SMTP_HOST:-}
-      Smtp__Port: ${SMTP_PORT:-587}
-      Smtp__User: ${SMTP_USER:-}
-      Smtp__Password: ${SMTP_PASSWORD:-}
-      Smtp__From: ${SMTP_FROM:-}
-      Smtp__UseSsl: ${SMTP_USE_SSL:-false}
-    restart: unless-stopped
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    logging:
+      driver: "none"
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  service_users:
+    build: ./service_users
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://admin:${POSTGRES_PASSWORD}@postgres:5432/users_db
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ALGORITHM=${JWT_ALGORITHM}
+      - ACC_TOKEN_EXP_MIN=${ACC_TOKEN_EXP_MIN}
+      - ORDERS_SERVICE_URL=http://service_orders:8000
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASS=guest
+    volumes:
+      - ./service_users:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    networks:
+      - app-network
+
+  service_notify:
+    build: ./service_notify
+    container_name: service_notify
+    ports:
+      - "8003:8000"
+    environment:
+      - SMTP_SERVER=${SMTP_SERVER}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_LOGIN=${SMTP_LOGIN}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASS=guest
+    volumes:
+      - ./service_notify:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - rabbitmq
+    networks:
+      - app-network
+
+  api_gateway:
+    build: ./api_gateway
+    ports:
+      - "8080:8000"
+    environment:
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ALGORITHM=${JWT_ALGORITHM}
+      - ACC_TOKEN_EXP_MIN=${ACC_TOKEN_EXP_MIN}
+      - REDIS_URL=${REDIS_URL}
+    volumes:
+      - ./api_gateway:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - service_users
+      - redis
+    networks:
+      - app-network
 
 volumes:
-  mysql_data:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+
+networks:
+  app-network:
+    driver: bridge
