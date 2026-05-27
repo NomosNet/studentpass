@@ -17,3 +17,10 @@ export function getAdminUsers(params = {}) {
 export function deleteAdminUser(userId) {
   return apiRequest(`/api/v1/admin/users/${userId}`, { method: 'DELETE' })
 }
+
+export function createAdminCategory(name) {
+  return apiRequest('/api/v1/admin/categories', {
+    method: 'POST',
+    body: JSON.stringify({ name: String(name || '').trim() }),
+  })
+}

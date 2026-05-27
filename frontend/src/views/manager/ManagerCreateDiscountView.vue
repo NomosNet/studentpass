@@ -2,10 +2,20 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useManagerDiscounts } from '../../composables/useManagerDiscounts'
+import { useSession } from '../../composables/useSession'
 
 const route = useRoute()
 const router = useRouter()
-const { getById, createDiscount, updateDiscount, categoryNames, load } = useManagerDiscounts()
+const { isAdmin } = useSession()
+const {
+  getById,
+  createDiscount,
+  updateDiscount,
+  categoryNames,
+  hasCategories,
+  load,
+  addCategory,
+} = useManagerDiscounts()
 
 const discountId = computed(() => String(route.params.id || ''))
 const editingDiscount = computed(() => (discountId.value ? getById(discountId.value) : null))
@@ -16,16 +26,20 @@ const description = ref(
   editingDiscount.value?.description || 'Подробное описание скидки и условий получения...',
 )
 const percent = ref(editingDiscount.value?.percentNumber ?? 15)
-const category = ref(editingDiscount.value?.category || 'Прочее')
+const category = ref(editingDiscount.value?.category || '')
 const linkUrl = ref(editingDiscount.value?.linkUrl || '')
 const emoji = ref(editingDiscount.value?.emoji || '🍔')
+const newCategoryName = ref('')
+const formError = ref('')
+const categoryBusy = ref(false)
 
 const previewTitle = computed(() => title.value.trim() || 'Название скидки')
 const previewDesc = computed(() => description.value.trim() || 'Описание скидки...')
 const previewEmoji = computed(() => emoji.value.trim() || '📋')
+const previewCategory = computed(() => category.value.trim() || 'Категория')
 
 onMounted(async () => {
-  await load()
+  await load(true)
   const current = discountId.value ? getById(discountId.value) : null
   if (current) {
     title.value = current.title
@@ -39,7 +53,29 @@ onMounted(async () => {
   }
 })
 
+async function submitNewCategory() {
+  formError.value = ''
+  categoryBusy.value = true
+  try {
+    const created = await addCategory(newCategoryName.value)
+    category.value = created.name
+    newCategoryName.value = ''
+  } catch (error) {
+    formError.value = error instanceof Error ? error.message : 'Не удалось создать категорию'
+  } finally {
+    categoryBusy.value = false
+  }
+}
+
 async function submitForm() {
+  formError.value = ''
+  if (!category.value) {
+    formError.value = isAdmin.value
+      ? 'Создайте категорию или выберите существующую'
+      : 'Категории ещё не созданы. Попросите администратора добавить их.'
+    return
+  }
+
   const payload = {
     title: title.value,
     description: description.value,
@@ -49,10 +85,13 @@ async function submitForm() {
     emoji: emoji.value,
   }
 
-  if (isEditMode.value) await updateDiscount(discountId.value, payload)
-  else await createDiscount(payload)
-
-  router.push({ name: 'manager-discounts' })
+  try {
+    if (isEditMode.value) await updateDiscount(discountId.value, payload)
+    else await createDiscount(payload)
+    router.push({ name: 'manager-discounts' })
+  } catch (error) {
+    formError.value = error instanceof Error ? error.message : 'Не удалось сохранить скидку'
+  }
 }
 </script>
 
@@ -76,6 +115,8 @@ async function submitForm() {
 
     <div class="mgr-form-card">
       <form class="mgr-form" @submit.prevent="submitForm">
+        <p v-if="formError" class="mgr-form-error">{{ formError }}</p>
+
         <div class="mgr-form__row">
           <label class="mgr-form-label" for="offer-title">📄 Название предложения</label>
           <input
@@ -106,11 +147,44 @@ async function submitForm() {
           <div class="mgr-form__row">
             <label class="mgr-form-label" for="offer-cat">🏷 Категория</label>
             <div class="mgr-form-select-wrap">
-              <select id="offer-cat" v-model="category" class="mgr-form-select">
+              <select
+                id="offer-cat"
+                v-model="category"
+                class="mgr-form-select"
+                :disabled="!hasCategories"
+              >
+                <option v-if="!hasCategories" value="">Нет категорий</option>
                 <option v-for="c in categoryNames" :key="c" :value="c">{{ c }}</option>
               </select>
             </div>
+            <p v-if="!hasCategories && !isAdmin" class="mgr-form-hint">
+              Категории ещё не созданы. Обратитесь к администратору.
+            </p>
           </div>
+        </div>
+
+        <div v-if="isAdmin" class="mgr-form__row mgr-category-add">
+          <label class="mgr-form-label" for="new-category">➕ Новая категория</label>
+          <div class="mgr-category-add__row">
+            <input
+              id="new-category"
+              v-model="newCategoryName"
+              type="text"
+              class="mgr-form-input"
+              placeholder="Например: Софт, Еда, Транспорт"
+            />
+            <button
+              type="button"
+              class="admin-btn admin-btn--ghost"
+              :disabled="categoryBusy || !newCategoryName.trim()"
+              @click="submitNewCategory"
+            >
+              {{ categoryBusy ? 'Добавление…' : 'Добавить' }}
+            </button>
+          </div>
+          <p class="mgr-form-hint">
+            Сначала создайте категорию, затем выберите её в списке выше.
+          </p>
         </div>
 
         <div class="mgr-form__row">
@@ -143,9 +217,37 @@ async function submitForm() {
           <span class="mgr-preview-emoji">{{ previewEmoji }}</span>
           <strong>{{ previewTitle }}</strong>
           <p>{{ previewDesc }}</p>
-          <span class="mgr-preview-cat">{{ category }}</span>
+          <span class="mgr-preview-cat">{{ previewCategory }}</span>
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.mgr-form-error {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #fee;
+  color: #b42318;
+  font-size: 0.95rem;
+}
+
+.mgr-category-add__row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.mgr-category-add__row .mgr-form-input {
+  flex: 1;
+}
+
+@media (max-width: 640px) {
+  .mgr-category-add__row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+</style>

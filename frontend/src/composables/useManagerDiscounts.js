@@ -1,4 +1,5 @@
 import { computed, ref } from 'vue'
+import { createAdminCategory } from '../services/adminService'
 import {
   createPartnerAd,
   deletePartnerAd,
@@ -35,8 +36,11 @@ function normalizeDiscount(payload) {
 }
 
 function mapPayloadToApi(payload, categoryRef) {
-  const categoryIdByName =
-    categories.value.find((item) => item.name === String(categoryRef || payload.category || '').trim())?.id || null
+  const categoryName = String(categoryRef || payload.category || '').trim()
+  const categoryIdByName = categories.value.find((item) => item.name === categoryName)?.id || null
+  if (!categoryIdByName) {
+    throw new Error('Выберите категорию или создайте новую')
+  }
   return {
     title: String(payload.title || '').trim(),
     description: String(payload.description || '').trim(),
@@ -46,24 +50,39 @@ function mapPayloadToApi(payload, categoryRef) {
     end_date: payload.endDate || new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
     category_ids: Array.isArray(payload.categoryIds) && payload.categoryIds.length
       ? payload.categoryIds
-      : [categoryIdByName || 1],
+      : [categoryIdByName],
     emodzi_id: null,
     prioritet: 0,
   }
 }
 
 export function useManagerDiscounts() {
-  async function load() {
-    if (stateLoaded.value) return
-    stateLoaded.value = true
-    const [adsResponse, categoriesResponse] = await Promise.all([getPartnerAds(), getAdCategories()])
+  async function loadCategories() {
+    const categoriesResponse = await getAdCategories()
+    categories.value = Array.isArray(categoriesResponse) ? categoriesResponse : []
+  }
+
+  async function load(force = false) {
+    if (stateLoaded.value && !force) return
+    const [adsResponse] = await Promise.all([getPartnerAds(), loadCategories()])
     const items = Array.isArray(adsResponse?.items) ? adsResponse.items : []
     discounts.value = items.map(normalizeDiscount)
-    categories.value = Array.isArray(categoriesResponse) ? categoriesResponse : []
+    stateLoaded.value = true
+  }
+
+  async function addCategory(name) {
+    const trimmed = String(name || '').trim()
+    if (!trimmed) throw new Error('Введите название категории')
+    const created = await createAdminCategory(trimmed)
+    if (!categories.value.some((item) => item.id === created.id)) {
+      categories.value = [...categories.value, created]
+    }
+    return created
   }
 
   const items = computed(() => discounts.value)
   const categoryNames = computed(() => categories.value.map((item) => item.name))
+  const hasCategories = computed(() => categoryNames.value.length > 0)
 
   function getById(id) {
     return discounts.value.find((item) => item.id === String(id)) || null
@@ -96,7 +115,10 @@ export function useManagerDiscounts() {
   return {
     items,
     categoryNames,
+    hasCategories,
     load,
+    loadCategories,
+    addCategory,
     getById,
     createDiscount,
     updateDiscount,
